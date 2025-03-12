@@ -1,17 +1,20 @@
 # main.py
+
+import os
 import time
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
-import xarray as xr
 from torchsummary import summary
 
-from data.data_loader import MyDataset, load_data
-from models.model import CustomNN
+# Import data generator and data loader functions
+from data.data_generator import main as generate_data
+from data.data_loader import load_data, MyDataset
+from models.custom_nn import CustomNN
 from utils.training import train
 
 def main():
-    # === Configuration ===
+    # Configuration dictionary: change values as needed.
     config = {
         'input_size': 1851,
         'output_size': 1800,
@@ -26,59 +29,74 @@ def main():
         'model_save_prefix': './'
     }
     
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print("Using device:", device)
+    # Updated list of data files
+    data_files = [
+        'Data/xtrain_nl2.pt',
+        'Data/ytrain_nl2.pt',
+        'Data/x_valid_nl2.pt',
+        'Data/y_valid_nl2.pt',
+        'Data/norm_data_nl2.nc'
+    ]
     
-    # Multiply the base neuron count by the number of layers
-    neurons_list = config['neurons_per_layer'] * config['hidden_layers']
-    
-    # === Data Loading ===
+    # Check if data files exist; if not, generate them.
+    if not all(os.path.exists(f) for f in data_files):
+        print("Generating data...")
+        generate_data()
+        print("Data generation complete.")
+    else:
+        print("Data already generated. Skipping generation.")
+
+    # --- Load Data ---
     x, y, x_valid, y_valid, norm_data = load_data()
+
+    # --- Create Dataset and Dataloaders ---
     train_dataset = MyDataset(x, y)
     valid_dataset = MyDataset(x_valid, y_valid)
-    
     train_dataloader = DataLoader(train_dataset, batch_size=config['batch_size'], shuffle=False, drop_last=True)
     valid_dataloader = DataLoader(valid_dataset, batch_size=config['batch_size'], shuffle=False, drop_last=True)
+
+    # --- Model Configuration ---
+    neurons_list = config['neurons_per_layer'] * config['hidden_layers']
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    # === Model Initialization ===
+    # --- Build Model ---
     model = CustomNN(
-        input_size=config['input_size'],
-        output_size=config['output_size'],
-        hidden_layers=config['hidden_layers'],
-        neurons_per_layer=neurons_list,
-        dropout_prob=config['dropout_prob'],
-        use_batch_norm=config['use_batch_norm'],
-        activation=config['activation']
+        config['input_size'],
+        config['output_size'],
+        config['hidden_layers'],
+        neurons_list,
+        config['dropout_prob'],
+        config['use_batch_norm'],
+        config['activation']
     ).to(device)
     
-    # Display model summary
     summary(model, (config['batch_size'], config['input_size']))
     
     optimizer = torch.optim.Adam(model.parameters(), lr=config['learning_rate'], amsgrad=True)
     
     # === Custom Loss Function ===
-
     # Create normalization tensor (if needed later in training)
-    fac = 1e6
-    a1 = (fac * norm_data['VNL_std'] + 0).transpose().values
+    a1 = (norm_data['VNL_std'] + 0).transpose().values
     norm_tensor = torch.FloatTensor(a1).to(device)
     
     def criterion(output, target):
-         return torch.mean(torch.abs(norm_tensor*(target - output)))
+         return torch.mean(torch.abs(norm_tensor * (target - output)))
     
-    # === Training ===
+    # --- Train Model ---
     start_time = time.time()
     training_results = train(
         model, criterion, train_dataloader, valid_dataloader,
         optimizer, config['epochs'], config['model_save_prefix'], device
     )
-    print(f"Training completed in {time.time() - start_time:.2f} seconds.")
+    elapsed = time.time() - start_time
+    print("Training completed in {:.2f} seconds".format(elapsed))
+    
+    # Create dynamic model save name using config parameters:
+    model_save_name = f"{config['model_save_prefix']}L{config['hidden_layers']}_{neurons_list[0]}_{config['epochs']}epoch_"
     
     # Save training logs
-    model_save_name = f"{config['model_save_prefix']}L{config['hidden_layers']}_{neurons_list[0]}_{config['epochs']}epoch"
-
-    np.savetxt(config['model_save_name'] + 'tr.txt', np.array(training_results['train_loss']))
-    np.savetxt(config['model_save_name'] + 'vd.txt', np.array(training_results['valid_loss']))
+    np.savetxt(model_save_name + 'tr.txt', np.array(training_results['train_loss']))
+    np.savetxt(model_save_name + 'vd.txt', np.array(training_results['valid_loss']))
 
 if __name__ == '__main__':
     main()
