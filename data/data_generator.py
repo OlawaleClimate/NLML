@@ -1,5 +1,3 @@
-# data/data_generator.py
-
 import os
 import numpy as np
 import pandas as pd
@@ -104,7 +102,7 @@ def conv_fd_data(ds_VA_stack, ds_VNL_stack, file_nk):
 
 
 # =============================================================================
-# Normalization Helper Functions
+# Normalization Functions
 # =============================================================================
 def compute_stats(ds, var, dims):
     mean = ds[var].mean(dim=dims)
