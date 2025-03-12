@@ -79,22 +79,25 @@ def main():
     
     def criterion(output, target):
          return torch.mean(torch.abs(norm_tensor * (target - output)))
+
+    # Create dynamic model save name using config parameters:
+    model_save_name = f"{config['model_save_prefix']}L{config['hidden_layers']}_{neurons_list[0]}_"
     
     # --- Train Model ---
     start_time = time.time()
     training_results = train(
         model, criterion, train_dataloader, valid_dataloader,
-        optimizer, config['epochs'], config['model_save_prefix'], device
+        optimizer, config['epochs'], model_save_name, device
     )
     elapsed = time.time() - start_time
     print("Training completed in {:.2f} seconds".format(elapsed))
     
-    # Create dynamic model save name using config parameters:
-    model_save_name = f"{config['model_save_prefix']}L{config['hidden_layers']}_{neurons_list[0]}_{config['epochs']}epoch_"
+    
     
     # Save training logs
-    np.savetxt(model_save_name + 'tr.txt', np.array(training_results['train_loss']))
-    np.savetxt(model_save_name + 'vd.txt', np.array(training_results['valid_loss']))
+    model_save_name = f"{config['model_save_prefix']}L{config['hidden_layers']}_{neurons_list[0]}_{config['epochs']}epoch"
+    np.savetxt(model_save_name + '_tr.txt', np.array(training_results['train_loss']))
+    np.savetxt(model_save_name + '_vd.txt', np.array(training_results['valid_loss']))
 
 if __name__ == '__main__':
     main()
