@@ -1,14 +1,12 @@
 # Ignore training log files
 *_tr.txt
 *_vd.txt
-data/*.pt
-data/*.nc
+**/*.pt
+**/*.nc
 
 # Ignore Python cache files
 __pycache__/*
 *.py[cod]
 
 # Ignore Jupyter Notebook checkpoints
-*.ipynb_checkpoints/*
-utils/.ipynb_checkpoints/
-data/.ipynb_checkpoints/
+**/.ipynb_checkpoints/*
