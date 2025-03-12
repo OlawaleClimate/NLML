@@ -13,10 +13,10 @@ class MyDataset(torch.utils.data.Dataset):
         return self.x_data.shape[0]
 
 def load_data():
-    x = torch.load('Data/xtrain_nofacnew_nl2.pt')
-    y = torch.load('Data/ytrain_nofacnew_nl2.pt')
-    x_valid = torch.load('Data/x_valid_nofacnew_nl2.pt')
-    y_valid = torch.load('Data/y_valid_nofacnew_nl2.pt')
-    norm_data = xr.open_dataset('Data/norm_data_nofacnew_nl2.nc')
+    x = torch.load('Data/xtrain_nl2.pt')
+    y = torch.load('Data/ytrain_nl2.pt')
+    x_valid = torch.load('Data/x_valid_nl2.pt')
+    y_valid = torch.load('Data/y_valid_nl2.pt')
+    norm_data = xr.open_dataset('Data/norm_nl2.nc')
     return x, y, x_valid, y_valid, norm_data
 
